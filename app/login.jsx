@@ -8,15 +8,54 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { supabase } from "../config/supabase";
+import bcrypt from "react-native-bcrypt";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    // Navigasi ke halaman home setelah menekan tombol Sign In
-    router.replace("/home");
+  const handleLogin = async () => {
+    const cleanInput = email.trim();
+    const cleanPassword = password;
+
+    if (!cleanInput || !cleanPassword) {
+      alert("Nomor HP/Email dan Password tidak boleh kosong!");
+      return;
+    }
+
+    try {
+      const { data: user, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("email", cleanInput)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error Supabase:", error);
+        throw error;
+      }
+
+      if (error) throw error;
+
+      if (!user) {
+        alert("Nomor HP atau Email yang Anda masukkan tidak terdaftar.");
+        return;
+      }
+
+      const isPasswordMatch = bcrypt.compareSync(cleanPassword, user.password);
+
+      if (!isPasswordMatch) {
+        alert("Password yang Anda masukkan salah.");
+        return;
+      }
+      console.log("Login Sukses! Mengarahkan ke Dashboard...");
+      router.replace("/(tabs)");
+    } catch (err) {
+      console.error("Login Error:", err);
+      alert("Gagal Masuk: " + err.message);
+    }
   };
 
   return (

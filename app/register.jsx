@@ -5,9 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   StatusBar,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { supabase } from "../config/supabase";
+import bcrypt from "react-native-bcrypt";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -15,9 +18,54 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleRegister = () => {
-    // Proses integrasi API register ke backend di sini nanti
-    console.log("Registering...", { username, email, password });
+  const handleRegister = async () => {
+    const cleanUsername = username.trim();
+    const cleanInput = email.trim(); // Kolom tempat user mengetik nomor HP/Email
+    const cleanPassword = password;
+
+    if (!cleanUsername || !cleanInput || !cleanPassword) {
+      Alert.alert("Error", "Semua kolom input wajib diisi!");
+      return;
+    }
+
+    try {
+      const hashedPassword = bcrypt.hashSync(cleanPassword, 4);
+      // 1. Cek apakah Kontak atau Username sudah pernah dipakai orang lain
+      const { data: userExist } = await supabase
+        .from("profiles")
+        .select("id")
+        .or(`email.eq.${cleanInput},username.eq.${cleanUsername}`)
+        .maybeSingle(); // Menggunakan maybeSingle agar tidak memicu error jika kosong
+
+      if (userExist) {
+        Alert.alert(
+          "Pendaftaran Gagal",
+          "Username atau Nomor HP/Email tersebut sudah terdaftar.",
+        );
+        return;
+      }
+
+      // 2. Kirim data akun ke tabel database publik Supabase
+      const { error } = await supabase.from("profiles").insert([
+        {
+          username: cleanUsername,
+          email: cleanInput, // Menyimpan nomor HP atau email yang diinput user
+          password: hashedPassword, // Menyimpan password static di database
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+      if (error) throw error;
+
+      Alert.alert("Sukses", "Akun E-TRACK Anda berhasil dibuat!", [
+        { text: "OK", onPress: () => router.replace("/login") },
+      ]);
+
+      // console.log("trigerred")
+      // router.replace("/login"); // Langsung pindah ke halaman login setelah register sukses
+    } catch (err) {
+      Alert.alert("Pendaftaran Gagal", err.message);
+    }
   };
 
   return (
@@ -41,9 +89,9 @@ export default function RegisterScreen() {
       </LinearGradient>
 
       <View
-              className="bg-white opacity-25 h-14 -mt-12 rounded-t-[20px] mx-5"
-              style={{ transform: [{ scaleX: 0.95 }] }} // Membuatnya sedikit lebih ramping ke samping
-            />
+        className="bg-white opacity-25 h-14 -mt-12 rounded-t-[20px] mx-5"
+        style={{ transform: [{ scaleX: 0.95 }] }} // Membuatnya sedikit lebih ramping ke samping
+      />
 
       {/* 2. BAGIAN BAWAH: Card Putih Melengkung */}
       <View className="flex-1 bg-white -mt-10 rounded-t-[32px] px-8 pt-10 pb-10">
