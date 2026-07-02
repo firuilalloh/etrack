@@ -16,6 +16,15 @@ const recentActivityData = [
   { id: "3", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
   { id: "4", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
   { id: "5", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "6", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "7", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "8", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "9", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "10", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "11", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "12", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "13", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
+  { id: "14", title: "Shopping", time: "Today, 12.30", amount: "Rp.23.000" },
 ];
 
 export default function DashboardScreen() {

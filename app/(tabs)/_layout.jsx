@@ -1,7 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
 // IMPORT SEBAGAI AKTOR IKON LANGSUNG DARI LIBRARY BARU
-import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Feather from "react-native-vector-icons/Feather";
 
 export default function TabsLayout() {
