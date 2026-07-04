@@ -50,8 +50,7 @@ export default function LoginScreen() {
         alert("Password yang Anda masukkan salah.");
         return;
       }
-      
-      
+
       console.log("Login Sukses! Mengarahkan ke Dashboard...");
       router.replace("/(tabs)");
     } catch (err) {
@@ -62,21 +61,18 @@ export default function LoginScreen() {
 
   return (
     <View className="flex-1">
-      {/* Membuat status bar atas menyatu dengan warna gradasi */}
       <StatusBar
         barStyle="light-content"
         backgroundColor="transparent"
         translucent
       />
 
-      {/* 1. BAGIAN ATAS: Background Gradasi Biru-Ungu Miring */}
       <LinearGradient
         colors={["#1d4ed8", "#c084fc"]}
         start={{ x: 0, y: 0.2 }}
         end={{ x: 1, y: 0.75 }}
         className="h-[35%] pt-16 px-6 items-center justify-between pb-16"
       >
-        {/* Teks Don't have account di paling atas */}
         <View className="flex-row items-center">
           <Text className="text-sm text-slate-200 font-poppins-regular">
             Don't have account ?{" "}
@@ -88,24 +84,20 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Judul E-TRACK Tengah Atas */}
         <Text className="text-4xl tracking-widest text-white uppercase font-nunito-bold">
           E-TRACK
         </Text>
 
-        {/* View kosong untuk menjaga keseimbangan flex justify-between */}
         <View />
       </LinearGradient>
 
       <View
         className="bg-white opacity-25 h-14 -mt-12 rounded-t-[20px] mx-5"
-        style={{ transform: [{ scaleX: 0.95 }] }} // Membuatnya sedikit lebih ramping ke samping
+        style={{ transform: [{ scaleX: 0.95 }] }}
       />
 
-      {/* 2. BAGIAN BAWAH: Card Putih Melengkung */}
       <View className="flex-1 bg-white -mt-10 rounded-t-[32px] px-8 pt-10 justify-start pb-10">
         <View>
-          {/* Teks Selamat Datang */}
           <Text className="text-3xl tracking-wide text-center text-slate-800 font-poppins-semibold">
             Welcome Back
           </Text>
@@ -113,9 +105,7 @@ export default function LoginScreen() {
             Enter Your Detail Bellow
           </Text>
 
-          {/* INPUT FORM */}
           <View className="space-y-5">
-            {/* Input Email/Number */}
             <View>
               <TextInput
                 className="p-4 text-sm bg-white border border-slate-300 rounded-xl text-slate-800 font-poppins-regular"
@@ -127,7 +117,6 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Input Password */}
             <View className="mt-4">
               <TextInput
                 className="p-4 text-sm bg-white border border-slate-300 rounded-xl text-slate-800 font-poppins-regular"
@@ -157,7 +146,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 3. BAGIAN PALING BAWAH: Forgot Password */}
         <View className="flex-row items-center justify-center mt-10">
           <Text className="text-sm text-slate-400 font-poppins-regular">
             Forgot your password ?{" "}

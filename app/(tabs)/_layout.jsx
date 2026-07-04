@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import React from "react";
-// IMPORT SEBAGAI AKTOR IKON LANGSUNG DARI LIBRARY BARU
 import Feather from "react-native-vector-icons/Feather";
 
 export default function TabsLayout() {
@@ -8,8 +7,8 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#4f46e5", // Warna ungu saat menu aktif
-        tabBarInactiveTintColor: "#94a3b8", // Warna abu-abu saat tidak aktif
+        tabBarActiveTintColor: "#4f46e5",
+        tabBarInactiveTintColor: "#94a3b8",
         tabBarStyle: {
           backgroundColor: "#ffffff",
           height: 65,
