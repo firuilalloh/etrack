@@ -50,6 +50,8 @@ export default function LoginScreen() {
         alert("Password yang Anda masukkan salah.");
         return;
       }
+      
+      
       console.log("Login Sukses! Mengarahkan ke Dashboard...");
       router.replace("/(tabs)");
     } catch (err) {
