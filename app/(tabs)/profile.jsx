@@ -27,7 +27,7 @@ export default function Profile() {
     try {
       const storedEmail = await AsyncStorage.getItem("userEmail");
       setUserEmail(storedEmail);
-      
+
       if (storedEmail) {
         const { data: profileData } = await supabase
           .from("profiles")
@@ -86,17 +86,11 @@ export default function Profile() {
 
       {/* Header */}
       <LinearGradient
-        colors={["#2948D3", "#A13FE6"]}
+        colors={["#1d4ed8", "#c084fc"]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
         className="h-56 rounded-b-[35px]"
       >
-        {/* Back */}
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="absolute top-14 left-5"
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-
         {/* Title */}
         <View className="flex-1 items-center justify-center">
           <Text className="text-white text-4xl font-bold">
@@ -124,22 +118,28 @@ export default function Profile() {
 
         <TextInput
           placeholder="Name"
-          editable={false}
-          className="border border-gray-300 rounded-md h-12 px-3 mb-4 bg-gray-100"
+          value={name}
+          onChangeText={setName}
+          editable={isEditing}
+          className={`border rounded-md h-12 px-3 mb-4 ${isEditing ? 'border-blue-400 bg-white' : 'border-gray-300 bg-gray-100'}`}
         />
 
         <TextInput
           placeholder="Number"
+          value={number}
+          onChangeText={setNumber}
           keyboardType="phone-pad"
-          editable={false}
-          className="border border-gray-300 rounded-md h-12 px-3 mb-4 bg-gray-100"
+          editable={isEditing}
+          className={`border rounded-md h-12 px-3 mb-4 ${isEditing ? 'border-blue-400 bg-white' : 'border-gray-300 bg-gray-100'}`}
         />
 
         <TextInput
           placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
           keyboardType="email-address"
-          editable={false}
-          className="border border-gray-300 rounded-md h-12 px-3 bg-gray-100"
+          editable={isEditing}
+          className={`border rounded-md h-12 px-3 ${isEditing ? 'border-blue-400 bg-white' : 'border-gray-300 bg-gray-100'}`}
         />
 
         <View className="flex-1" />
@@ -147,30 +147,37 @@ export default function Profile() {
         {/* Button */}
         <View className="flex-row justify-between gap-4 mb-8">
 
-          <TouchableOpacity className="flex-1">
+          <TouchableOpacity
+            className="flex-1 overflow-hidden rounded-xl"
+            onPress={() => isEditing ? handleSave() : setIsEditing(true)}
+          >
             <LinearGradient
-              colors={["#2948D3", "#A13FE6"]}
-              className="h-12 rounded-lg items-center justify-center"
+              colors={["#1d4ed8", "#c084fc"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              className="h-12 rounded-xl items-center justify-center"
             >
               <Text className="text-white font-semibold">
-                Edit Profile
+                {isEditing ? "Save Profile" : "Edit Profile"}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-1"
+            className="flex-1 overflow-hidden rounded-xl"
             onPress={() => router.replace("/login")}
->
-          <LinearGradient
-            colors={["#2948D3", "#A13FE6"]}
-            className="h-12 rounded-lg items-center justify-center"
-  >
-          <Text className="text-white font-semibold">
-          Logout
-    </Text>
-  </LinearGradient>
-</TouchableOpacity>
+          >
+            <LinearGradient
+              colors={["#1d4ed8", "#c084fc"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              className="h-12 rounded-xl items-center justify-center"
+            >
+              <Text className="text-white font-semibold">
+                Logout
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
         </View>
 
