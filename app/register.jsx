@@ -11,12 +11,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { supabase } from "../config/supabase";
 import bcrypt from "react-native-bcrypt";
+import { Ionicons } from "@expo/vector-icons"; // Import ikon
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // State toggle mata
 
   const handleRegister = async () => {
     const cleanUsername = username.trim();
@@ -118,15 +120,26 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <View className="mt-4">
+            {/* Input Password dengan Tombol Mata */}
+            <View className="relative flex-row items-center mt-4">
               <TextInput
-                className="p-4 text-sm bg-white border border-slate-300 rounded-xl text-slate-800 font-poppins-regular"
+                className="flex-1 p-4 pr-12 text-sm bg-white border border-slate-300 rounded-xl text-slate-800 font-poppins-regular"
                 placeholder="Password"
                 placeholderTextColor="#94a3b8"
-                secureTextEntry
+                secureTextEntry={!showPassword} // Toggle visibilitas
                 value={password}
                 onChangeText={setPassword}
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                className="absolute right-4"
+              >
+                <Ionicons
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
+                  size={20}
+                  color="#94a3b8"
+                />
+              </TouchableOpacity>
             </View>
           </View>
 

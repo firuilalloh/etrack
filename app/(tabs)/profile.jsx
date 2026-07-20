@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -13,77 +7,76 @@ import { router } from "expo-router";
 import { supabase } from "../../config/supabase";
 
 export default function Profile() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState("");
-  const [number, setNumber] = useState("");
-  const [email, setEmail] = useState("");
-  const [userEmail, setUserEmail] = useState("");
+  // const [isEditing, setIsEditing] = useState(false);
+  // const [name, setName] = useState("");
+  // const [number, setNumber] = useState("");
+  // const [email, setEmail] = useState("");
+  // const [userEmail, setUserEmail] = useState("");
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
+  // useEffect(() => {
+  //   fetchUserData();
+  // }, []);
 
-  const fetchUserData = async () => {
-    try {
-      const storedEmail = await AsyncStorage.getItem("userEmail");
-      setUserEmail(storedEmail);
-      
-      if (storedEmail) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("username, phone, email")
-          .eq("email", storedEmail)
-          .single();
+  // const fetchUserData = async () => {
+  //   try {
+  //     const storedEmail = await AsyncStorage.getItem("userEmail");
+  //     setUserEmail(storedEmail);
 
-        if (profileData) {
-          setName(profileData.username || "");
-          setNumber(profileData.phone || "");
-          setEmail(profileData.email || "");
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  };
+  //     if (storedEmail) {
+  //       const { data: profileData } = await supabase
+  //         .from("profiles")
+  //         .select("username, phone, email")
+  //         .eq("email", storedEmail)
+  //         .single();
 
-  const handleSave = async () => {
-    try {
-      if (!name || !number || !email) {
-        Alert.alert("Error", "Semua field harus diisi!");
-        return;
-      }
+  //       if (profileData) {
+  //         setName(profileData.username || "");
+  //         setNumber(profileData.phone || "");
+  //         setEmail(profileData.email || "");
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching user data:", error);
+  //   }
+  // };
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          username: name,
-          phone: number,
-          email: email,
-        })
-        .eq("email", userEmail);
+  // const handleSave = async () => {
+  //   try {
+  //     if (!name || !number || !email) {
+  //       Alert.alert("Error", "Semua field harus diisi!");
+  //       return;
+  //     }
 
-      if (error) throw error;
+  //     const { error } = await supabase
+  //       .from("profiles")
+  //       .update({
+  //         username: name,
+  //         phone: number,
+  //         email: email,
+  //       })
+  //       .eq("email", userEmail);
 
-      Alert.alert("Sukses", "Profile berhasil diperbarui!");
-      setIsEditing(false);
-    } catch (error) {
-      Alert.alert("Error", "Gagal menyimpan profile: " + error.message);
-    }
-  };
+  //     if (error) throw error;
 
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem("userEmail");
-      await supabase.auth.signOut();
-      router.replace("/login");
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
+  //     Alert.alert("Sukses", "Profile berhasil diperbarui!");
+  //     setIsEditing(false);
+  //   } catch (error) {
+  //     Alert.alert("Error", "Gagal menyimpan profile: " + error.message);
+  //   }
+  // };
+
+  // const handleLogout = async () => {
+  //   try {
+  //     await AsyncStorage.removeItem("userEmail");
+  //     await supabase.auth.signOut();
+  //     router.replace("/login");
+  //   } catch (error) {
+  //     console.error("Error logging out:", error);
+  //   }
+  // };
 
   return (
     <View className="flex-1 bg-white">
-
       {/* Header */}
       <LinearGradient
         colors={["#2948D3", "#A13FE6"]}
@@ -98,10 +91,8 @@ export default function Profile() {
         </TouchableOpacity>
 
         {/* Title */}
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-white text-4xl font-bold">
-            E-TRACK
-          </Text>
+        <View className="items-center justify-center flex-1">
+          <Text className="text-4xl font-bold text-white">E-TRACK</Text>
         </View>
 
         {/* Background Ungu */}
@@ -109,71 +100,61 @@ export default function Profile() {
       </LinearGradient>
 
       {/* Avatar */}
-      <View className="absolute top-36 self-center z-10">
-        <View className="w-24 h-24 rounded-full bg-white border border-gray-300 items-center justify-center shadow-lg">
-          <Ionicons
-            name="person-outline"
-            size={40}
-            color="black"
-          />
+      <View className="absolute z-10 self-center top-36">
+        <View className="items-center justify-center w-24 h-24 bg-white border border-gray-300 rounded-full shadow-lg">
+          <Ionicons name="person-outline" size={40} color="black" />
         </View>
       </View>
 
       {/* Body */}
       <View className="flex-1 bg-white rounded-t-[30px] -mt-6 px-5 pt-20">
-
         <TextInput
           placeholder="Name"
           editable={false}
-          className="border border-gray-300 rounded-md h-12 px-3 mb-4 bg-gray-100"
+          className="h-12 px-3 mb-4 bg-gray-100 border border-gray-300 rounded-md"
         />
 
         <TextInput
           placeholder="Number"
           keyboardType="phone-pad"
           editable={false}
-          className="border border-gray-300 rounded-md h-12 px-3 mb-4 bg-gray-100"
+          className="h-12 px-3 mb-4 bg-gray-100 border border-gray-300 rounded-md"
         />
 
         <TextInput
           placeholder="Email"
           keyboardType="email-address"
           editable={false}
-          className="border border-gray-300 rounded-md h-12 px-3 bg-gray-100"
+          className="h-12 px-3 bg-gray-100 border border-gray-300 rounded-md"
         />
 
         <View className="flex-1" />
 
         {/* Button */}
         <View className="flex-row justify-between gap-4 mb-8">
-
-          <TouchableOpacity className="flex-1">
+          {/* Tombol Edit Profile */}
+          <TouchableOpacity className="flex-1 overflow-hidden rounded-xl">
             <LinearGradient
               colors={["#2948D3", "#A13FE6"]}
-              className="h-12 rounded-lg items-center justify-center"
+              className="items-center justify-center h-12"
             >
-              <Text className="text-white font-semibold">
-                Edit Profile
-              </Text>
+              <Text className="font-semibold text-white">Edit Profile</Text>
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* Tombol Logout */}
           <TouchableOpacity
-            className="flex-1"
+            className="flex-1 overflow-hidden rounded-xl"
             onPress={() => router.replace("/login")}
->
-          <LinearGradient
-            colors={["#2948D3", "#A13FE6"]}
-            className="h-12 rounded-lg items-center justify-center"
-  >
-          <Text className="text-white font-semibold">
-          Logout
-    </Text>
-  </LinearGradient>
-</TouchableOpacity>
-
+          >
+            <LinearGradient
+              colors={["#2948D3", "#A13FE6"]}
+              className="items-center justify-center h-12"
+            >
+              <Text className="font-semibold text-white">Logout</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
-
       </View>
     </View>
   );

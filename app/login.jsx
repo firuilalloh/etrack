@@ -10,11 +10,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { supabase } from "../config/supabase";
 import bcrypt from "react-native-bcrypt";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     const cleanInput = email.trim();
@@ -37,8 +40,6 @@ export default function LoginScreen() {
         throw error;
       }
 
-      if (error) throw error;
-
       if (!user) {
         alert("Nomor HP atau Email yang Anda masukkan tidak terdaftar.");
         return;
@@ -50,6 +51,8 @@ export default function LoginScreen() {
         alert("Password yang Anda masukkan salah.");
         return;
       }
+
+      await AsyncStorage.setItem("user_id", user.id);
 
       console.log("Login Sukses! Mengarahkan ke Dashboard...");
       router.replace("/(tabs)");
@@ -117,15 +120,26 @@ export default function LoginScreen() {
               />
             </View>
 
-            <View className="mt-4">
+            {/* Input Password dengan Tombol Mata */}
+            <View className="relative flex-row items-center mt-4">
               <TextInput
-                className="p-4 text-sm bg-white border border-slate-300 rounded-xl text-slate-800 font-poppins-regular"
+                className="flex-1 p-4 pr-12 text-sm bg-white border border-slate-300 rounded-xl text-slate-800 font-poppins-regular"
                 placeholder="Password"
                 placeholderTextColor="#94a3b8"
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                className="absolute right-4"
+              >
+                <Ionicons
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
+                  size={20}
+                  color="#94a3b8"
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
