@@ -61,7 +61,7 @@ export default function TabsLayout() {
             // Cegah perilaku default (pindah ke tab "add")
             e.preventDefault();
             // Buka layar add-transaction sebagai modal di atas tab bar
-            router.push("/add-transaction");
+            router.push("/add");
           },
         }}
       />
