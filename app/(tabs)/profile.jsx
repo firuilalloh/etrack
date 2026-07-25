@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Diaktifkan
 import { supabase } from "../../config/supabase";
 
 export default function Profile() {
@@ -11,7 +11,7 @@ export default function Profile() {
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
   const [email, setEmail] = useState("");
-  const [userEmail, setUserEmail] = useState("");
+  const [userId, setUserId] = useState("");
 
   useEffect(() => {
     fetchUserData();
@@ -19,18 +19,21 @@ export default function Profile() {
 
   const fetchUserData = async () => {
     try {
-      const storedEmail = await AsyncStorage.getItem("userEmail");
-      setUserEmail(storedEmail);
+      // Ambil ID user yang sedang login dari AsyncStorage
+      const storedId = await AsyncStorage.getItem("user_id");
+      setUserId(storedId);
 
-      if (storedEmail) {
-        const { data: profileData } = await supabase
+      if (storedId) {
+        const { data: profileData, error } = await supabase
           .from("profiles")
-          .select("username, phone, email")
-          .eq("email", storedEmail)
-          .single();
+          .select("*")
+          .eq("id", storedId)
+          .maybeSingle();
+
+        if (error) throw error;
 
         if (profileData) {
-          setName(profileData.username || "");
+          setName(profileData.username || profileData.name || "");
           setNumber(profileData.phone || "");
           setEmail(profileData.email || "");
         }
@@ -42,8 +45,8 @@ export default function Profile() {
 
   const handleSave = async () => {
     try {
-      if (!name || !number || !email) {
-        Alert.alert("Error", "Semua field harus diisi!");
+      if (!name || !email) {
+        Alert.alert("Error", "Name dan Email wajib diisi!");
         return;
       }
 
@@ -54,7 +57,7 @@ export default function Profile() {
           phone: number,
           email: email,
         })
-        .eq("email", userEmail);
+        .eq("id", userId);
 
       if (error) throw error;
 
@@ -67,8 +70,7 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("userEmail");
-      await supabase.auth.signOut();
+      await AsyncStorage.removeItem("user_id"); 
       router.replace("/login");
     } catch (error) {
       console.error("Error logging out:", error);
@@ -107,7 +109,9 @@ export default function Profile() {
           value={name}
           onChangeText={setName}
           editable={isEditing}
-          className={`border rounded-md h-12 px-3 mb-4 ${isEditing ? "border-blue-400 bg-white" : "border-gray-300 bg-gray-100"}`}
+          className={`border rounded-md h-12 px-3 mb-4 text-slate-800 ${
+            isEditing ? "border-blue-400 bg-white" : "border-gray-300 bg-gray-100"
+          }`}
         />
 
         <TextInput
@@ -116,7 +120,9 @@ export default function Profile() {
           onChangeText={setNumber}
           keyboardType="phone-pad"
           editable={isEditing}
-          className={`border rounded-md h-12 px-3 mb-4 ${isEditing ? "border-blue-400 bg-white" : "border-gray-300 bg-gray-100"}`}
+          className={`border rounded-md h-12 px-3 mb-4 text-slate-800 ${
+            isEditing ? "border-blue-400 bg-white" : "border-gray-300 bg-gray-100"
+          }`}
         />
 
         <TextInput
@@ -124,8 +130,11 @@ export default function Profile() {
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+          autoCapitalize="none"
           editable={isEditing}
-          className={`border rounded-md h-12 px-3 ${isEditing ? "border-blue-400 bg-white" : "border-gray-300 bg-gray-100"}`}
+          className={`border rounded-md h-12 px-3 text-slate-800 ${
+            isEditing ? "border-blue-400 bg-white" : "border-gray-300 bg-gray-100"
+          }`}
         />
 
         <View className="flex-1" />
@@ -150,7 +159,7 @@ export default function Profile() {
 
           <TouchableOpacity
             className="flex-1 overflow-hidden rounded-xl"
-            onPress={() => router.replace("/login")}
+            onPress={handleLogout}
           >
             <LinearGradient
               colors={["#4f46e5", "#8b5cf6"]}

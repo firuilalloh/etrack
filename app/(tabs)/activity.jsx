@@ -1,46 +1,49 @@
-import React, { useState, useMemo } from "react";
-import { Text, View, TouchableOpacity, ScrollView, StatusBar } from "react-native";
+import React, { useState, useMemo, useCallback } from "react";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  StatusBar,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Feather from "react-native-vector-icons/Feather";
+import { useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../../config/supabase";
 
-// Daftar bulan lengkap, dipakai untuk navigasi chip bulan
 const ALL_MONTHS = [
-  "January", "February", "March", "April", "Mey", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
-// Ringkasan Income/Expense per tab (Year/Month) - data simulasi
-const SUMMARY_DATA = {
-  Year: { income: 24000000, incomeCount: 2, expense: -940000, expenseCount: 12 },
-  Month: { income: 2500000, incomeCount: 1, expense: -300000, expenseCount: 4 },
+// Mapping nama bulan angka ke string Supabase / Date formatting
+const MONTH_MAP = {
+  January: 0,
+  February: 1,
+  March: 2,
+  April: 3,
+  May: 4,
+  June: 5,
+  July: 6,
+  August: 7,
+  September: 8,
+  October: 9,
+  November: 10,
+  December: 11,
 };
 
-// Simulasi transaksi, dikelompokkan per bulan lalu per hari
-const ACTIVITY_DATA = {
-  Mey: [
-    {
-      id: "today",
-      label: "Today,  Mey 16",
-      items: [
-        { id: "t1", title: "Tips For Waiter", amount: -2 },
-        { id: "t2", title: "Shopping Mall", amount: -200 },
-        { id: "t3", title: "Gift From Brother", amount: 300 },
-        { id: "t4", title: "Shopping Manna", amount: -100 },
-        { id: "t5", title: "Salary", amount: 2200 },
-      ],
-    },
-    {
-      id: "yesterday",
-      label: "Yesterday,  Mey 15",
-      items: [
-        { id: "y1", title: "Shopping Mall", amount: -200 },
-        { id: "y2", title: "Shopping Manna", amount: -100 },
-      ],
-    },
-  ],
-};
-
-// Format angka dengan tanda +/- dan pemisah ribuan gaya Indonesia
 const formatAmount = (value) => {
   const sign = value < 0 ? "-" : "+";
   return `${sign}${Math.abs(value).toLocaleString("id-ID")}`;
@@ -48,44 +51,197 @@ const formatAmount = (value) => {
 
 export default function ActivityScreen() {
   const [activeTab, setActiveTab] = useState("Year"); // "Year" | "Month"
-  const [selectedMonth, setSelectedMonth] = useState("Mey");
-  // Window index untuk menampilkan 3 chip bulan sekaligus (sesuai desain: April, Mey, June)
-  const [windowStart, setWindowStart] = useState(3);
+  const [selectedMonth, setSelectedMonth] = useState("May");
+  const [windowStart, setWindowStart] = useState(3); // Default index May (April, May, June)
+
+  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState([]);
+  const [summary, setSummary] = useState({
+    Year: { income: 0, incomeCount: 0, expense: 0, expenseCount: 0 },
+    Month: { income: 0, incomeCount: 0, expense: 0, expenseCount: 0 },
+  });
 
   const visibleMonths = ALL_MONTHS.slice(windowStart, windowStart + 3);
-  const summary = SUMMARY_DATA[activeTab];
-  const groups = ACTIVITY_DATA[selectedMonth] || [];
 
-  const handlePrevWindow = () => setWindowStart((prev) => Math.max(0, prev - 1));
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const currentUserId = await AsyncStorage.getItem("user_id");
+
+      if (!currentUserId) return;
+
+      // Ambil seluruh transaksi user dari Supabase
+      const { data, error } = await supabase
+        .from("transactions")
+        .select(
+          `
+          id,
+          type,
+          amount,
+          description,
+          date,
+          categories (name)
+        `,
+        )
+        .eq("user_id", currentUserId)
+        .order("date", { ascending: false });
+
+      if (error) throw error;
+
+      const txs = data || [];
+      setTransactions(txs);
+
+      // Kalkulasi Summary & Pengelompokan Data
+      let yearIncome = 0,
+        yearIncomeCount = 0;
+      let yearExpense = 0,
+        yearExpenseCount = 0;
+      let monthIncome = 0,
+        monthIncomeCount = 0;
+      let monthExpense = 0,
+        monthExpenseCount = 0;
+
+      const currentYear = new Date().getFullYear();
+      const targetMonthIndex = MONTH_MAP[selectedMonth];
+
+      txs.forEach((tx) => {
+        const amt = Number.parseFloat(tx.amount) || 0;
+        const txDate = new Date(tx.date);
+        const txYear = txDate.getFullYear();
+        const txMonthIndex = txDate.getMonth();
+
+        // Hitung untuk Year (Tahun Berjalan)
+        if (txYear === currentYear) {
+          if (tx.type === "INCOME") {
+            yearIncome += amt;
+            yearIncomeCount += 1;
+          } else {
+            yearExpense += Math.abs(amt); // Simpan nilai positif untuk display, tandanya diatur format
+            yearExpenseCount += 1;
+          }
+
+          // Hitung untuk Month yang sedang dipilih
+          if (txMonthIndex === targetMonthIndex) {
+            if (tx.type === "INCOME") {
+              monthIncome += amt;
+              monthIncomeCount += 1;
+            } else {
+              monthExpense += Math.abs(amt);
+              monthExpenseCount += 1;
+            }
+          }
+        }
+      });
+
+      setSummary({
+        Year: {
+          income: yearIncome,
+          incomeCount: yearIncomeCount,
+          expense: -yearExpense,
+          expenseCount: yearExpenseCount,
+        },
+        Month: {
+          income: monthIncome,
+          incomeCount: monthIncomeCount,
+          expense: -monthExpense,
+          expenseCount: monthExpenseCount,
+        },
+      });
+    } catch (err) {
+      console.error("Gagal memuat data activity:", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchActivities();
+    }, [selectedMonth]),
+  );
+
+  // Filter & Grouping transaksi berdasarkan bulan yang dipilih & per hari
+  const groupedData = useMemo(() => {
+    const targetMonthIndex = MONTH_MAP[selectedMonth];
+    const filteredByMonth = transactions.filter((tx) => {
+      const txDate = new Date(tx.date);
+      return txDate.getMonth() === targetMonthIndex;
+    });
+
+    // Kelompokkan per tanggal (Label: "Today", "Yesterday", atau Format Tanggal)
+    const groupsMap = {};
+    const todayStr = new Date().toDateString();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = yesterdayDate.toDateString();
+
+    filteredByMonth.forEach((tx) => {
+      const txDate = new Date(tx.date);
+      const dateString = txDate.toDateString();
+
+      let label = txDate.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      if (dateString === todayStr) {
+        label = `Today, ${selectedMonth} ${txDate.getDate()}`;
+      } else if (dateString === yesterdayStr) {
+        label = `Yesterday, ${selectedMonth} ${txDate.getDate()}`;
+      }
+
+      if (!groupsMap[label]) {
+        groupsMap[label] = [];
+      }
+
+      groupsMap[label].push({
+        id: tx.id,
+        title: tx.categories?.name || tx.description || "Transaksi",
+        amount:
+          tx.type === "INCOME"
+            ? Number(tx.amount)
+            : -Math.abs(Number(tx.amount)),
+      });
+    });
+
+    return Object.keys(groupsMap).map((label) => ({
+      id: label,
+      label,
+      items: groupsMap[label],
+    }));
+  }, [transactions, selectedMonth]);
+
+  const currentSummary = summary[activeTab];
+
+  const handlePrevWindow = () =>
+    setWindowStart((prev) => Math.max(0, prev - 1));
   const handleNextWindow = () =>
     setWindowStart((prev) => Math.min(ALL_MONTHS.length - 3, prev + 1));
-
-  const handleSelectMonth = (month) => setSelectedMonth(month);
-
   const dots = useMemo(() => [0, 1, 2], []);
 
   return (
     <View className="flex-1 bg-white">
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
 
       {/* HEADER GRADASI UNGU */}
       <LinearGradient
         colors={["#4f46e5", "#8b5cf6"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="pt-14 px-6 pb-10"
+        className="px-6 pb-10 pt-14"
       >
-
         {/* TOGGLE YEAR / MONTH */}
-        <View className="flex-row self-center p-1 mb-6 bg-white/20 rounded-full">
+        <View className="flex-row self-center p-1 mb-6 rounded-full bg-white/20">
           <TouchableOpacity
             onPress={() => setActiveTab("Year")}
             className={`px-6 py-2 rounded-full ${activeTab === "Year" ? "bg-white" : ""}`}
           >
             <Text
-              className={`text-sm font-poppins-semibold ${
-                activeTab === "Year" ? "text-indigo-600" : "text-white/70"
-              }`}
+              className={`text-sm font-poppins-semibold ${activeTab === "Year" ? "text-indigo-600" : "text-white/70"}`}
             >
               Year
             </Text>
@@ -95,9 +251,7 @@ export default function ActivityScreen() {
             className={`px-6 py-2 rounded-full ${activeTab === "Month" ? "bg-white" : ""}`}
           >
             <Text
-              className={`text-sm font-poppins-semibold ${
-                activeTab === "Month" ? "text-indigo-600" : "text-white/70"
-              }`}
+              className={`text-sm font-poppins-semibold ${activeTab === "Month" ? "text-indigo-600" : "text-white/70"}`}
             >
               Month
             </Text>
@@ -107,57 +261,46 @@ export default function ActivityScreen() {
         {/* CARD INCOME & EXPENSE */}
         <View className="flex-row gap-4">
           <View className="flex-1 p-4 bg-white shadow-sm rounded-2xl">
-            <Text className="text-xs text-indigo-500 font-poppins-semibold">Income</Text>
+            <Text className="text-xs text-indigo-500 font-poppins-semibold">
+              Income
+            </Text>
             <Text className="mt-1 text-xl text-slate-800 font-poppins-semibold">
-              {formatAmount(summary.income)}
+              {formatAmount(currentSummary.income)}
             </Text>
             <Text className="mt-1 text-[10px] text-right text-slate-400 font-poppins-regular">
-              {summary.incomeCount}T
+              {currentSummary.incomeCount}T
             </Text>
           </View>
           <View className="flex-1 p-4 bg-white shadow-sm rounded-2xl">
-            <Text className="text-xs text-indigo-500 font-poppins-semibold">Expense</Text>
+            <Text className="text-xs text-indigo-500 font-poppins-semibold">
+              Expense
+            </Text>
             <Text className="mt-1 text-xl text-slate-800 font-poppins-semibold">
-              {formatAmount(summary.expense)}
+              {formatAmount(currentSummary.expense)}
             </Text>
             <Text className="mt-1 text-[10px] text-right text-slate-400 font-poppins-regular">
-              {summary.expenseCount}T
+              {currentSummary.expenseCount}T
             </Text>
-          </View>
-        </View>
-
-        {/* DOT INDICATOR */}
-        <View className="flex-row justify-center gap-4 mt-2">
-          <View className="flex-row justify-center flex-1 gap-1">
-            {dots.map((d) => (
-              <View key={`income-dot-${d}`} className="w-1 h-1 rounded-full bg-white/50" />
-            ))}
-          </View>
-          <View className="flex-row justify-center flex-1 gap-1">
-            {dots.map((d) => (
-              <View key={`expense-dot-${d}`} className="w-1 h-1 rounded-full bg-white/50" />
-            ))}
           </View>
         </View>
 
         {/* NAVIGASI BULAN */}
-        <View className="flex-row items-center justify-between mt-6">
-          <TouchableOpacity
-            onPress={handlePrevWindow}
-            className="items-center justify-center bg-white rounded-full w-9 h-9"
+        <View className="mt-6">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
           >
-            <Feather name="chevrons-left" size={18} color="#4f46e5" />
-          </TouchableOpacity>
-
-          <View className="flex-row flex-1 justify-evenly">
-            {visibleMonths.map((month) => {
+            {ALL_MONTHS.map((month) => {
               const isSelected = month === selectedMonth;
               return (
                 <TouchableOpacity
                   key={month}
-                  onPress={() => handleSelectMonth(month)}
-                  className={`px-4 py-2 mx-1 rounded-full ${
-                    isSelected ? "bg-white" : "border border-white/50"
+                  onPress={() => setSelectedMonth(month)}
+                  className={`px-5 py-2 rounded-full ${
+                    isSelected
+                      ? "bg-white"
+                      : "border border-white/50 bg-white/10"
                   }`}
                 >
                   <Text
@@ -170,54 +313,62 @@ export default function ActivityScreen() {
                 </TouchableOpacity>
               );
             })}
-          </View>
-
-          <TouchableOpacity
-            onPress={handleNextWindow}
-            className="items-center justify-center bg-white rounded-full w-9 h-9"
-          >
-            <Feather name="chevrons-right" size={18} color="#4f46e5" />
-          </TouchableOpacity>
+          </ScrollView>
         </View>
       </LinearGradient>
 
       {/* DAFTAR AKTIVITAS */}
       <View className="flex-1 px-6 pt-6 bg-white -mt-6 rounded-t-[25px]">
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-          {groups.length === 0 ? (
-            <View className="items-center justify-center mt-16">
-              <Text className="text-sm text-slate-400 font-poppins-regular">
-                Belum ada transaksi bulan ini
-              </Text>
-            </View>
-          ) : (
-            groups.map((group) => (
-              <View key={group.id} className="mb-6">
-                <Text className="mb-2 text-xs text-slate-500 font-poppins-semibold">
-                  {group.label}
+        {loading ? (
+          <View className="items-center justify-center flex-1">
+            <ActivityIndicator size="large" color="#4f46e5" />
+          </View>
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
+            {groupedData.length === 0 ? (
+              <View className="items-center justify-center mt-16">
+                <Text className="text-sm text-slate-400 font-poppins-regular">
+                  Belum ada transaksi bulan ini
                 </Text>
-                <View className="px-4 bg-slate-100 rounded-2xl">
-                  {group.items.map((item, idx) => (
-                    <View
-                      key={item.id}
-                      className={`flex-row items-center py-3 ${
-                        idx !== group.items.length - 1 ? "border-b border-slate-200" : ""
-                      }`}
-                    >
-                      <View className="w-9 h-9 mr-3 bg-slate-300 rounded-lg" />
-                      <Text className="flex-1 text-sm text-indigo-500 font-poppins-medium">
-                        {item.title}
-                      </Text>
-                      <Text className="text-sm text-indigo-500 font-poppins-semibold">
-                        {formatAmount(item.amount)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
               </View>
-            ))
-          )}
-        </ScrollView>
+            ) : (
+              groupedData.map((group) => (
+                <View key={group.id} className="mb-6">
+                  <Text className="mb-2 text-xs text-slate-500 font-poppins-semibold">
+                    {group.label}
+                  </Text>
+                  <View className="px-4 bg-slate-100 rounded-2xl">
+                    {group.items.map((item, idx) => (
+                      <View
+                        key={item.id}
+                        className={`flex-row items-center py-3 ${
+                          idx !== group.items.length - 1
+                            ? "border-b border-slate-200"
+                            : ""
+                        }`}
+                      >
+                        <View className="items-center justify-center mr-3 rounded-lg w-9 h-9 bg-slate-300">
+                          <Feather name="activity" size={16} color="#64748b" />
+                        </View>
+                        <Text className="flex-1 text-sm text-slate-700 font-poppins-medium">
+                          {item.title}
+                        </Text>
+                        <Text
+                          className={`text-sm font-poppins-semibold ${item.amount < 0 ? "text-slate-700" : "text-emerald-600"}`}
+                        >
+                          {formatAmount(item.amount)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        )}
       </View>
     </View>
   );
