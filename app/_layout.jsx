@@ -35,7 +35,9 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+  <Stack.Screen name="add-transaction" options={{ presentation: "modal" }} />
+</Stack>
     </QueryClientProvider>
   );
 }

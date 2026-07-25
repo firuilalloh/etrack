@@ -1,8 +1,10 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import React from "react";
 import Feather from "react-native-vector-icons/Feather";
 
 export default function TabsLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -45,7 +47,7 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 3. TAB ADD */}
+      {/* 3. TAB ADD — dibajak: buka modal /add-transaction, bukan pindah tab */}
       <Tabs.Screen
         name="add"
         options={{
@@ -53,6 +55,14 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <Feather name="plus" size={26} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            // Cegah perilaku default (pindah ke tab "add")
+            e.preventDefault();
+            // Buka layar add-transaction sebagai modal di atas tab bar
+            router.push("/add");
+          },
         }}
       />
 
