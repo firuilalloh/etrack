@@ -84,11 +84,11 @@ export default function Profile() {
         colors={["#4f46e5", "#8b5cf6"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="h-56 rounded-b-[35px]"
+        className="h-56"
       >
         {/* Title */}
         <View className="items-center justify-center flex-1">
-          <Text className="text-4xl font-bold text-white">E-TRACK</Text>
+          <Text className="text-4xl font-bold text-white font-nunito-bold">E-TRACK</Text>
         </View>
 
         {/* Background Ungu */}

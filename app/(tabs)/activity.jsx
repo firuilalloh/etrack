@@ -44,6 +44,15 @@ const MONTH_MAP = {
   December: 11,
 };
 
+// 1. Tentukan bulan sekarang (misal formatnya string sesuai ALL_MONTHS)
+const currentMonthName = new Date().toLocaleString("en-US", { month: "long" });
+
+// 2. Cari index bulan sekarang di dalam ALL_MONTHS supaya windowStart-nya pas
+const currentMonthIndex = ALL_MONTHS.indexOf(currentMonthName);
+// Kalau misal indexnya ketemu, kita geser windowStart supaya bulan ini keliatan (misal ditaruh di tengah atau awal window)
+const initialWindowStart =
+  currentMonthIndex !== -1 ? Math.max(0, currentMonthIndex - 1) : 3;
+
 const formatAmount = (value) => {
   const sign = value < 0 ? "-" : "+";
   return `${sign}${Math.abs(value).toLocaleString("id-ID")}`;
@@ -51,8 +60,12 @@ const formatAmount = (value) => {
 
 export default function ActivityScreen() {
   const [activeTab, setActiveTab] = useState("Year"); // "Year" | "Month"
-  const [selectedMonth, setSelectedMonth] = useState("May");
-  const [windowStart, setWindowStart] = useState(3); // Default index May (April, May, June)
+
+  const [selectedMonth, setSelectedMonth] = useState(
+    ALL_MONTHS.includes(currentMonthName) ? currentMonthName : ALL_MONTHS[0],
+  );
+
+  const [windowStart, setWindowStart] = useState(initialWindowStart);
 
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
@@ -212,12 +225,6 @@ export default function ActivityScreen() {
   }, [transactions, selectedMonth]);
 
   const currentSummary = summary[activeTab];
-
-  const handlePrevWindow = () =>
-    setWindowStart((prev) => Math.max(0, prev - 1));
-  const handleNextWindow = () =>
-    setWindowStart((prev) => Math.min(ALL_MONTHS.length - 3, prev + 1));
-  const dots = useMemo(() => [0, 1, 2], []);
 
   return (
     <View className="flex-1 bg-white">

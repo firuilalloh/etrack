@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,18 +12,9 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-
-const CATEGORIES = [
-  "Makanan & Minuman",
-  "Transportasi",
-  "Belanja",
-  "Hiburan",
-  "Tagihan",
-  "Kesehatan",
-  "Pendidikan",
-  "Lainnya",
-];
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../../config/supabase"; // Sesuaikan path config supabase kamu
 
 function formatRupiah(value) {
   const numeric = value.replace(/[^0-9]/g, "");
@@ -33,29 +24,114 @@ function formatRupiah(value) {
 
 export default function AddTransactionScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
 
-  const [type, setType] = useState("expense");
+  const [type, setType] = useState("expense"); // "income" atau "expense"
   const [rawAmount, setRawAmount] = useState("");
-  const [category, setCategory] = useState(null);
+  const [category, setCategory] = useState(null); // Menyimpan objek kategori (id & name)
   const [description, setDescription] = useState("");
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
+  // State untuk menampung list kategori dari database Supabase
+  const [categoriesList, setCategoriesList] = useState([]);
+
+  useEffect(() => {
+    if (params.type) {
+      setType(params.type.toLowerCase());
+    }
+  }, [params.type]);
+
+  // Tangkap parameter amount dan description dari halaman scan
+  useEffect(() => {
+    if (params.amount) {
+      setRawAmount(String(params.amount));
+    }
+    if (params.description) {
+      setDescription(params.description);
+    }
+  }, [params.amount, params.description]);
+
+  // Ambil kategori dari database setiap kali user ganti tipe (Income / Expense)
+  useEffect(() => {
+    fetchCategories();
+    // Reset kategori yang dipilih kalau user ganti tipe
+    setCategory(null);
+  }, [type]);
+
+  const resetForm = () => {
+    setType(params.type ? params.type.toLowerCase() : "income");
+    setRawAmount("");
+    setCategory(null);
+    setDescription("");
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (params.type) {
+        setType(params.type.toLowerCase());
+      }
+      resetForm();
+    }, [params.type]),
+  );
+
+  async function fetchCategories() {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name")
+        .eq("type", type.toUpperCase()); // "INCOME" atau "EXPENSE"
+
+      if (error) {
+        console.error("Gagal ambil kategori:", error.message);
+        return;
+      }
+
+      setCategoriesList(data || []);
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  }
+
   const canSubmit = rawAmount.length > 0 && category !== null;
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit) return;
 
-    const payload = {
-      type,
-      amount: Number(rawAmount),
-      category,
-      description,
-    };
+    try {
+      // 1. Ambil user_id langsung dari AsyncStorage pakai key "user_id" (seperti di ActivityScreen)
+      const currentUserId = await AsyncStorage.getItem("user_id");
 
-    // TODO: ganti dengan logic simpan transaksi (API call / local storage / context)
-    console.log("New transaction:", payload);
+      if (!currentUserId) {
+        console.error(
+          "User ID tidak ditemukan di AsyncStorage. Silakan login ulang.",
+        );
+        return;
+      }
 
-    router.back();
+      // 2. Insert data ke tabel transactions Supabase
+      const { error: insertError } = await supabase
+        .from("transactions")
+        .insert([
+          {
+            user_id: currentUserId,
+            type: type.toUpperCase(), // "INCOME" atau "EXPENSE"
+            amount: Number(rawAmount),
+            category_id: category.id, // UUID dari kategori yang dipilih
+            description: description,
+            date: new Date().toISOString(),
+          },
+        ]);
+
+      if (insertError) {
+        console.error("Gagal menyimpan transaksi:", insertError.message);
+        return;
+      }
+
+      console.log("Transaksi berhasil disimpan!");
+      router.back();
+    } catch (err) {
+      console.error("Terjadi kesalahan:", err);
+    }
   }
 
   return (
@@ -67,20 +143,8 @@ export default function AddTransactionScreen() {
         colors={["#4338CA", "#7C3AED", "#A855F7"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="pt-14 pb-16 px-5 rounded-b-[32px]"
+        className="px-5 pb-16 pt-14"
       >
-        <View className="flex-row items-center mb-6">
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Ionicons name="chevron-back" size={24} color="white" />
-          </Pressable>
-          <Text
-            className="ml-3 text-xl text-white"
-            style={{ fontFamily: "Poppins_500Medium" }}
-          >
-            Add New Transaction
-          </Text>
-        </View>
-
         <View className="flex-row p-1 bg-white/20 rounded-2xl">
           <Pressable
             onPress={() => setType("income")}
@@ -118,7 +182,7 @@ export default function AddTransactionScreen() {
       >
         <View className="flex-1 bg-white rounded-t-[32px] px-5 pt-8">
           <Text
-            className="mb-1 text-center text-gray-500"
+            className="text-center text-gray-500"
             style={{ fontFamily: "Poppins_400Regular" }}
           >
             Amount
@@ -128,9 +192,14 @@ export default function AddTransactionScreen() {
             value={rawAmount ? formatRupiah(rawAmount) : ""}
             onChangeText={(text) => setRawAmount(text.replace(/[^0-9]/g, ""))}
             placeholder="Rp 0"
+            placeholderTextColor="#9CA3AF"
             keyboardType="numeric"
-            className="mb-6 text-3xl text-center text-gray-900"
-            style={{ fontFamily: "Poppins_600SemiBold" }}
+            textAlignVertical="center"
+            className="pt-5 mb-6 text-3xl text-center text-gray-950"
+            style={{
+              fontFamily: "Poppins_600SemiBold",
+              includeFontPadding: false,
+            }}
           />
 
           {/* Category dropdown */}
@@ -148,7 +217,7 @@ export default function AddTransactionScreen() {
               className={category ? "text-gray-900" : "text-gray-400"}
               style={{ fontFamily: "Poppins_400Regular" }}
             >
-              {category ?? "Pilih kategori"}
+              {category ? category.name : "Pilih kategori"}
             </Text>
             <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
           </Pressable>
@@ -173,10 +242,11 @@ export default function AddTransactionScreen() {
 
           <View className="flex-1" />
 
+          {/* Tombol Submit dengan overflow-hidden agar roundednya sempurna */}
           <Pressable
             onPress={handleSubmit}
             disabled={!canSubmit}
-            className="mb-8"
+            className="mb-8 overflow-hidden rounded-2xl"
           >
             <LinearGradient
               colors={
@@ -217,8 +287,8 @@ export default function AddTransactionScreen() {
               Pilih Category
             </Text>
             <FlatList
-              data={CATEGORIES}
-              keyExtractor={(item) => item}
+              data={categoriesList}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <Pressable
                   onPress={() => {
@@ -231,9 +301,9 @@ export default function AddTransactionScreen() {
                     className="text-gray-800"
                     style={{ fontFamily: "Poppins_400Regular" }}
                   >
-                    {item}
+                    {item.name}
                   </Text>
-                  {category === item && (
+                  {category?.id === item.id && (
                     <Ionicons name="checkmark" size={18} color="#7C3AED" />
                   )}
                 </Pressable>

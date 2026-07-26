@@ -15,16 +15,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function DashboardScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState(""); 
+  const [userName, setUserName] = useState("");
   const [balance, setBalance] = useState(0);
   const [recentActivities, setRecentActivities] = useState([]);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
+      if (recentActivities.length === 0) {
+        setLoading(true);
+      }
 
       const currentUserId = await AsyncStorage.getItem("user_id");
-
       if (!currentUserId) {
         router.replace("/login");
         return;
@@ -41,7 +42,10 @@ export default function DashboardScreen() {
       }
 
       if (profileData) {
-        const nameToShow = profileData.username || profileData.name || profileData.email.split("@")[0];
+        const nameToShow =
+          profileData.username ||
+          profileData.name ||
+          profileData.email.split("@")[0];
         setUserName(nameToShow);
       } else {
         console.log("Profile tidak ditemukan!");
@@ -51,14 +55,16 @@ export default function DashboardScreen() {
 
       const { data: txData, error: txError } = await supabase
         .from("transactions")
-        .select(`
+        .select(
+          `
           id,
           type,
           amount,
           description,
           date,
           categories (name)
-        `)
+        `,
+        )
         .eq("user_id", currentUserId)
         .order("date", { ascending: false })
         .limit(10);
@@ -96,7 +102,7 @@ export default function DashboardScreen() {
   useFocusEffect(
     React.useCallback(() => {
       fetchData();
-    }, [])
+    }, []),
   );
 
   const formatRupiah = (number) => {
@@ -136,7 +142,9 @@ export default function DashboardScreen() {
 
         <View className="flex-row space-x-4">
           <TouchableOpacity
-            onPress={() => router.push("/income")}
+            onPress={() =>
+              router.push({ pathname: "/add", params: { type: "income" } })
+            }
             className="items-center flex-1 py-3 bg-white shadow-sm rounded-xl"
           >
             <Text className="text-sm text-indigo-600 font-poppins-semibold">
@@ -144,7 +152,9 @@ export default function DashboardScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.push("/expense")}
+            onPress={() =>
+              router.push({ pathname: "/add", params: { type: "expense" } })
+            }
             className="items-center flex-1 py-3 ml-4 bg-white shadow-sm rounded-xl"
           >
             <Text className="text-sm text-rose-600 font-poppins-semibold">
